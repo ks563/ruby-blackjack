@@ -160,7 +160,6 @@ class Game
   end
 
   def current_result
-    #need to check value of cards to check bust or blackjack
     {:player_cards => @player_hand.cards,
       :player_card_value => @player_value,
       :dealer_cards => @dealer_hand.cards,
