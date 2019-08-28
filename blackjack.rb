@@ -1,8 +1,14 @@
+BLACKJACK = 21
+
 class Card
   attr_accessor :suit, :name, :value
 
   def initialize(suit, name, value)
     @suit, @name, @value = suit, name, value
+  end
+
+  def to_s
+    "#{name} of #{suit}"
   end
 end
 
@@ -43,10 +49,186 @@ class Deck
   end
 end
 
+class BustError < StandardError;
+end
+
 class Hand
   attr_accessor :cards
 
   def initialize
     @cards = []
+    @done = false
+  end
+
+  def draw(card)
+    @cards << card
+    raise BustError.new("Went over") if value > BLACKJACK
+  end
+end
+
+  def value
+    cards.map(&:value).sum
+  end
+
+  def show
+    cards.each do |card|
+      p card.to_s
+    end
+  end
+
+  def reset
+    @done = false
+  end
+
+  def done?
+    @done
+  end
+
+  def prompt
+    puts "Would you like to hit or stay?"
+    response = gets.chomp
+    @done = response == "stay"
+  end
+end
+
+class View
+  def self.game_over(player_name)
+    puts "#{player_name} went bust"
+  end
+end
+
+
+
+class Game
+    attr_accessor :player_hand, :dealer_hand, :deck
+    def initialize
+      deck = Deck.new
+      player_hand = Hand.new
+      dealer_hand = Hand.new
+      
+      players = [player_hand, dealer_hand]
+      game_play()
+    end
+
+      
+  
+   def game_play
+      loop do
+        dealer_hand.show # see dealer hand
+      
+        players.each_with_index do |player, index| # draw cards
+          player.reset
+          begin
+            until player.done?
+              player.draw(deck.deal_card)
+              player.draw(deck.deal_card)
+      
+              player.prompt
+          end
+        rescue BustError => e
+          player_name = index ? "Dealer" : "Player"
+        View.game_over
+        players.delete_at(index)
+      end
+      end
+      
+      puts "Player: #{player_hand.value} Dealer: #{dealer_hand.value}"
+      end
+
+    end
+  
+
+  
+
+
+
+
+  def draw(playable_cards)
+    @player_hand.draw(@playable_cards)
+  end
+
+  def stand
+    @dealer_hand.dealer_turn
+    @winner = check_result(@player_hand.value, @dealer_hand.value)
+  end
+
+  def dealer_turn(playable_cards)
+    if @dealer_hand_value <= 17
+      draw(playable_cards)
+      dealer_turn(playable_cards)
+    end
+  end
+
+  def current_result
+    #need to check value of cards to check bust or blackjack
+    {:player_cards => @player_hand.cards,
+      :player_card_value => @player_value,
+      :dealer_cards => @dealer_hand.cards,
+      :dealer_card_value => @dealer_value,
+      :winner => @winner}
+    end
+
+  def check_result(player_value, dealer_value)
+    if player_value == BLACKJACK
+      return :playerblackjack!
+    end
+    if player_value > BLACKJACK
+      #player bust
+      return :dealer 
+    end
+    if dealer_value > BLACKJACK
+      #dealer bust
+      return :player
+    end
+    if player_value > dealer_value
+     :player
+    else
+      return :dealer
+    end
+    if player_value == dealer_value
+      return :tie
+    end
+    
+  end
+end
+
+
+require 'test/unit'
+
+class CardTest < Test::Unit::TestCase
+  def setup
+    @card = Card.new(:hearts, :ten, 10)
+  end
+  
+  def test_card_suit_is_correct
+    assert_equal @card.suit, :hearts
+  end
+
+  def test_card_name_is_correct
+    assert_equal @card.name, :ten
+  end
+  def test_card_value_is_correct
+    assert_equal @card.value, 10
+  end
+end
+
+class DeckTest < Test::Unit::TestCase
+  def setup
+    @deck = Deck.new
+  end
+  
+  def test_new_deck_has_52_playable_cards
+    assert_equal @deck.playable_cards.size, 52
+  end
+  
+ 
+  def test_dealt_card_should_not_be_included_in_playable_cards
+    card = @deck.deal_card
+    assert(@deck.playable_cards.include?(card) == false)
+  end
+
+  def test_shuffled_deck_has_52_playable_cards
+    @deck.shuffle
+    assert_equal @deck.playable_cards.size, 52
   end
 end
